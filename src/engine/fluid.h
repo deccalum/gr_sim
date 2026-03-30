@@ -1,0 +1,24 @@
+#pragma once
+
+/**
+ * @brief Stub fluid engine reserved for future hydrodynamics coupling.
+ */
+
+#include "engine_interface.h"
+
+class SimulationState;
+
+/**
+ * @brief Placeholder fluid plugin.
+ */
+class fluid_engine final : public EngineInterface {
+ public:
+  std::string name() const override { return "fluid"; }
+  std::string version() const override { return "0.0.0-stub"; }
+  void init(SimulationState&) {}
+  void pre_step(SimulationState&, double) {}
+  void post_step(SimulationState&, double) {}
+  void shutdown() {}
+  std::vector<std::string> reads() const override { return {}; }
+  std::vector<std::string> writes() const override { return {}; }
+};

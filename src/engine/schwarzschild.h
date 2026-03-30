@@ -1,0 +1,35 @@
+#pragma once
+
+/**
+ * @brief Implements the Schwarzschild solution in spherical coordinates.
+ * Coordinates are ordered as (t, r, θ, φ) and all expressions assume geometric units with G = c =
+ * 1. Christoffel symbols remain analytic so the solver never pays for finite-difference derivative
+ * estimates.
+ * @note The Christoffel path is expected to be memory-bound at roughly 57 FLOPs over 552 bytes.
+ */
+
+#include "metric.h"
+
+/**
+ * @brief Exact vacuum metric for a static, spherically symmetric mass.
+ * @details The line element in spherical coordinates @f$(t,\,r,\,\theta,\,\varphi)@f$ is
+ * @f[
+ *   ds^2 = -\!\left(1-\frac{2M}{r}\right)dt^2
+ *          + \left(1-\frac{2M}{r}\right)^{-1}dr^2
+ *          + r^2\,d\theta^2 + r^2\sin^2\!\theta\,d\varphi^2
+ * @f]
+ * Events at @f$r \leq 2M@f$ are inside the event horizon; callers should guard
+ * against degenerate metric evaluations there.
+ */
+class SchwarzschildMetric final : public MetricProvider {
+ public:
+  /** @param mass_M Central Schwarzschild mass in geometric units (@f$G = c = 1@f$). */
+  explicit SchwarzschildMetric(double mass_M) : M_(mass_M) {}
+  void metric(const Vec4& x, Mat4& g, const AccuracyProfile& acc) const override;
+  void christoffel(const Vec4& x, Gamma& g, const AccuracyProfile& acc) const override;
+  void metric_inverse(const Vec4& x, Mat4& ginv, const AccuracyProfile& acc) const override;
+  double mass() const { return M_; }
+
+ private:
+  double M_;  // Central mass in geometric units.
+};
