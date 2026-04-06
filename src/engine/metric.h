@@ -35,3 +35,15 @@ class MetricProvider {
    */
   virtual void metric_inverse(const Vec4& x, Mat4& ginv, const AccuracyProfile& acc) const = 0;
 };
+
+/**
+ * @brief Isotropic Schwarzschild metric in Cartesian coordinates.
+ * @param x Spacetime coordinate.
+ * @param g Output metric tensor.
+ * @param acc Accuracy profile.
+ * 
+ * ρ  = sqrt(x² + y² + z²)      isotropic radial distance
+ * α  = M / (2ρ)                 compactness parameter
+ * ψ  = 1 + α                    conformal factor
+ * A  = (1 - α) / (1 + α)        lapse factor
+ */

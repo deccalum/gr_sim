@@ -8,6 +8,7 @@
  * @note The Christoffel path is expected to be memory-bound at roughly 57 FLOPs over 552 bytes.
  */
 
+#include "../system/validator.h"
 #include "metric.h"
 
 /**
@@ -21,15 +22,21 @@
  * Events at @f$r \leq 2M@f$ are inside the event horizon; callers should guard
  * against degenerate metric evaluations there.
  */
-class SchwarzschildMetric final : public MetricProvider {
+class SchwarzschildMetric final : public MetricProvider, public Validatable {
  public:
-  /** @param mass_M Central Schwarzschild mass in geometric units (@f$G = c = 1@f$). */
   explicit SchwarzschildMetric(double mass_M) : M_(mass_M) {}
+
   void metric(const Vec4& x, Mat4& g, const AccuracyProfile& acc) const override;
   void christoffel(const Vec4& x, Gamma& g, const AccuracyProfile& acc) const override;
   void metric_inverse(const Vec4& x, Mat4& ginv, const AccuracyProfile& acc) const override;
-  double mass() const { return M_; }
+
+  double mass() const {
+    return M_;
+  }
+
+  // Validatable interface — run via ValidatorRunner or CUI "validate"
+  ValidationResult validate() const override;
 
  private:
-  double M_;  // Central mass in geometric units.
+  double M_;  // gravitational mass in geometric units (G=c=1)
 };

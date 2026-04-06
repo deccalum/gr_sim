@@ -23,10 +23,14 @@ class SpacetimeField {
    * @param g Output covariant metric @f$g_{\mu\nu}@f$.
    * @param gamma Output Christoffel symbol @f$\Gamma^\sigma{}_{\mu\nu}@f$.
    */
-  void eval_at(const Vec4& x, Mat4& g, Gamma& gamma, const AccuracyProfile& acc);
+  void eval_at(const Vec4& x, Mat4& g, Gamma& gamma, const AccuracyProfile& acc) const;
 
-  AMRGrid& grid() { return grid_; }
-  MetricProvider& metric_provider() { return *metric_; }
+  AMRGrid& grid() {
+    return grid_;
+  }
+  MetricProvider& metric_provider() {
+    return *metric_;
+  }
 
  private:
   std::unique_ptr<MetricProvider> metric_;

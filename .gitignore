@@ -4,6 +4,7 @@ archive/
 /.vscode
 .github
 .clang-format
+CLAUDE.md
 TODO.md
 
 # temporary ignored

@@ -15,10 +15,10 @@ namespace si {
 /**
  * @brief SI constants used only to convert data at the simulator boundary.
  */
-inline constexpr double c = 2.99792458e8;  // m/s
-inline constexpr double G = 6.67430e-11;   // m^3 kg^-1 s^-2
-inline constexpr double c2 = c * c;
-inline constexpr double c4 = c2 * c2;
+inline constexpr double c   = 2.99792458e8;  // m/s
+inline constexpr double G   = 6.67430e-11;   // m^3 kg^-1 s^-2
+inline constexpr double c2  = c * c;
+inline constexpr double c4  = c2 * c2;
 }  // namespace si
 
 namespace geom {
@@ -60,12 +60,11 @@ namespace limits {
 /**
  * @brief Regime thresholds and normalization targets used by the integrator.
  */
-inline constexpr double timelike_norm = -1.0;  // g_uv u^u u^v = -1 for massive bodies.
-inline constexpr double null_norm = 0.0;       // g_uv k^u k^v = 0 for null trajectories.
-inline constexpr double strong_field_r_over_M =
-    6.0;  // Near or inside the Schwarzschild ISCO (r/M = 6).
-inline constexpr double schwarzschild_coeff = 2.0;  // r_s = 2M.
-inline constexpr double isco_r_over_M = 6.0;        // Innermost stable circular orbit (r/M = 6).
+inline constexpr double timelike_norm           = -1.0; // g_uv u^u u^v = -1 for massive bodies.
+inline constexpr double null_norm               = 0.0;  // g_uv k^u k^v = 0 for null trajectories.
+inline constexpr double strong_field_r_over_M   = 6.0;  // Near or inside the Schwarzschild ISCO (r/M = 6).
+inline constexpr double schwarzschild_coeff     = 2.0;  // r_s = 2M.
+inline constexpr double isco_r_over_M           = 6.0;  // Innermost stable circular orbit (r/M = 6).
 }  // namespace limits
 
 namespace convert {

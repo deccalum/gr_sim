@@ -29,12 +29,20 @@ class Body {
   const Vec4& position() const;
   const Vec4& velocity() const;
   const Worldline& worldline() const;
-  AccuracyProfile& accuracy() { return acc_; }
-  double mass() const { return mass_; }
-  uint64_t id() const { return id_; }
+  AccuracyProfile& accuracy() {
+    return acc_;
+  }
+  double mass() const {
+    return mass_;
+  }
+  uint64_t id() const {
+    return id_;
+  }
 
   // Engine-owned scalars flow through this bag instead of direct member access.
-  void set_property(const std::string& key, double val) { props_[key] = val; }
+  void set_property(const std::string& key, double val) {
+    props_[key] = val;
+  }
   double get_property(const std::string& key, double def = 0.0) const {
     auto it = props_.find(key);
     return it != props_.end() ? it->second : def;
@@ -53,5 +61,7 @@ class Body {
   void step_rk8(const SpacetimeField&, double dl);
   /** @brief Reprojects @f$u^\mu@f$ so @f$g_{\mu\nu}u^\mu u^\nu = -1@f$ stays within
    * `norm_tolerance`. */
+  void enforce_norm_at(const SpacetimeField&, WorldlinePoint&) const;
+  /** @brief Reprojects the latest worldline point to enforce the norm constraint. */
   void enforce_norm(const SpacetimeField&);
 };

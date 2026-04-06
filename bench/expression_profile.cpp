@@ -13,7 +13,6 @@
 /**
  * @brief ExpressionMeasurement::evaluate — cross-check classification.
  */
-
 ExpressionMeasurement::CheckResult ExpressionMeasurement::evaluate(const HardwareProfile& hw,
                                                                    std::string& detail_out) const {
   if (n_iterations < 10) {
@@ -146,10 +145,14 @@ ExpressionMeasurement::CheckResult ExpressionMeasurement::evaluate(const Hardwar
 // OI = 57 / 552 ≈ 0.103 FLOPs/byte
 
 const ExpressionProfile profiles::schwarzschild_christoffel = {
+    // Isotropic Cartesian [t, x, y, z], G=c=1
+    // 30 non-zero Gamma entries (vs 13 spherical). sqrt replaces sin/cos.
+    // Derivation: docs/ROOFLINE.md
     .name = "schwarzschild_christoffel",
-    .flop_count = 57.0,
-    .bytes_read = 40.0,      // Vec4 (32) + mass (8)
-    .bytes_written = 512.0,  // full gamma[4][4][4]
+    .flop_count = 66.0,      // ~42 pre-computation + 24 Gamma values
+    .bytes_read = 40.0,      // Vec4 (32) + mass M (8)
+    .bytes_written = 512.0,  // full gamma[4][4][4] including zeros
+                             // OI = 66 / 552 = 0.120 FLOPs/byte -> memory-bound
 };
 
 // DERIVATION: RK4 geodesic step — L1 miss (worst case)
@@ -191,17 +194,13 @@ const ExpressionProfile profiles::schwarzschild_christoffel = {
 // OI = 396 / 2848 ≈ 0.139 FLOPs/byte  → memory-bound
 
 const ExpressionProfile profiles::rk4_geodesic_l1_miss = {
+    // Isotropic Cartesian. 4 RHS x (66 Gamma + 30 contraction) + 56 RK4 combo = 440 FLOPs
+    // Memory access pattern unchanged from spherical derivation.
     .name = "rk4_geodesic_l1_miss",
-    .flop_count = 396.0,
-    .bytes_read = 2208.0 + 320.0,   // christoffel reads + state reads
-    .bytes_written = 256.0 + 64.0,  // christoffel writes + state writes
-                                    // Decomposed for clarity:
-    //   bytes_read  = 4×40 (gamma inputs) + (64 + 4×64) (state reads) = 160 + 320 = 480...
-    // See note in expression_profile.h — full breakdown in derivation above.
-    // Storing total directly: bytes_read + bytes_written = 2848
-    // Setting as: read = 2208 (christoffel total) + 320 (state reads) = 2528
-    //             write = 256 (k1-k4 state) + 64 (final state) = 320
-    // Correction applied — total = 2848
+    .flop_count = 440.0,     // 4*(66+30) + 56
+    .bytes_read = 2528.0,    // 4*(40 Gamma read) + (64 + 4*64) state reads
+    .bytes_written = 320.0,  // 4*64 k-writes + 64 final state
+                             // Total bytes: 2848. OI = 440/2848 = 0.155 FLOPs/byte -> memory-bound
 };
 
 // Memory (L1 hit — gamma stays in L1 between k1-k4):
@@ -282,93 +281,87 @@ unsigned char* StubSchwarzschildChristoffel::prepare_inputs(int N) const {
 
 void StubSchwarzschildChristoffel::execute(const unsigned char* input,
                                            unsigned char* output_sink) const {
-  // STUB BODY — replace with: metric_provider.christoffel(inp.x, out.gamma, acc)
+  // STUB BODY — replace with: schwarzschild_metric.christoffel(inp.x, out.gamma, acc)
   //
-  // This stub replicates the FLOP count and memory access pattern of the
-  // real Schwarzschild Christoffel computation. It does not produce
-  // physically correct output.
+  // Isotropic Cartesian coordinates [t, x, y, z], G=c=1.
+  // Replicates the FLOP count and memory pattern of the real implementation.
+  // 30 non-zero gamma entries. Three scalar factors drive all values.
+  //
+  // FLOP count: ~66 total (42 pre-computation + 24 Gamma values)
+  // Replace this body with a direct call to SchwarzschildMetric::christoffel().
 
   const auto& inp = *reinterpret_cast<const ChristoffelInput*>(input);
   auto& out = *reinterpret_cast<ChristoffelOutput*>(output_sink);
 
-  const double r = inp.x[1];
-  const double theta = inp.x[2];
+  const auto& inp = *reinterpret_cast<const ChristoffelInput*>(input);
+  auto& out = *reinterpret_cast<ChristoffelOutput*>(output_sink);
+
+  const double px = inp.x[1];  // x spatial coordinate
+  const double py = inp.x[2];  // y
+  const double pz = inp.x[3];  // z
   const double M = inp.mass_M;
 
-  // -- Pre-computation (47 FLOPs) --
+  // -- Pre-computation (~42 FLOPs) --
+  // ρ² = x² + y² + z²   [3 mul + 2 add = 5]
+  const double rho2 = px * px + py * py + pz * pz;  // FLOP: 5
+  // ρ = sqrt(ρ²)   [~20]
+  const double rho = std::sqrt(rho2);  // FLOP: ~20
+  // α = M / (2ρ)   [1 mul + 1 div = 2]
+  const double alpha = M * 0.5 / rho;  // FLOP: 2
+  // ψ = 1 + α   [1 add]
+  const double psi = 1.0 + alpha;  // FLOP: 1
+  // A = (1 - α) / ψ   [1 sub + 1 div = 2]
+  const double A = (1.0 - alpha) / psi;  // FLOP: 2
+  // ψ², ψ⁴, ψ⁶   [3 mul]
+  const double psi2 = psi * psi;    // FLOP: 1
+  const double psi4 = psi2 * psi2;  // FLOP: 1
+  const double psi6 = psi4 * psi2;  // FLOP: 1
+  // 2α   [1 mul]
+  const double two_a = 2.0 * alpha;  // FLOP: 1
+  // Scalar factors   [3+3+2 = 8 FLOPs]
+  const double f_t = two_a / (A * rho2 * psi2);  // FLOP: 2 mul + 1 div = 3
+  const double f_r = two_a * A / (rho2 * psi6);  // FLOP: 2 mul + 1 div = 3
+  const double f_s = two_a / (rho2 * psi);       // FLOP: 1 mul + 1 div = 2
 
-  // 2M/r (1 div) → f = 1 - 2M/r (1 sub) = 2 FLOPs
-  const double two_M_over_r = (2.0 * M) / r;  // FLOP: 1 mul, 1 div = 2
-  const double f = 1.0 - two_M_over_r;        // FLOP: 1 sub = 1
-
-  // r² = r*r (1 mul) = 1 FLOP
-  const double r2 = r * r;  // FLOP: 1 mul = 1
-
-  // sin(θ) (~20 FLOPs), cos(θ) (~20 FLOPs)
-  const double sin_theta = std::sin(theta);  // FLOP: ~20
-  const double cos_theta = std::cos(theta);  // FLOP: ~20
-
-  // sin²(θ) (1 mul) = 1 FLOP
-  const double sin2_theta = sin_theta * sin_theta;  // FLOP: 1 mul = 1
-
-  // cot(θ) = cos/sin (1 div) = 1 FLOP
-  const double cot_theta = cos_theta / sin_theta;  // FLOP: 1 div = 1
-
-  // 1/r (1 div) = 1 FLOP
-  const double inv_r = 1.0 / r;  // FLOP: 1 div = 1
-
-  // r·f (1 mul) = 1 FLOP
-  const double r_f = r * f;  // FLOP: 1 mul = 1
-
-  // Pre-computation total: 2+1+1+20+20+1+1+1+1 = 48 FLOPs
-  // (1 extra mul for 2*M — slightly above the 47 in the derivation;
-  //  compiler may fold this as a constant. Negligible — within WARN tolerance.)
-
-  // -- Zero-fill entire gamma array (512 bytes written) --
-  // Matches: the real implementation writes all 64 entries.
+  // -- Zero-fill (512 bytes written) --
   std::memset(out.gamma, 0, sizeof(out.gamma));  // BYTES WRITE: 512
 
-  // -- Christoffel values (10 FLOPs + 4 writes) --
+  // -- Γ^t_ti = f_t · x_i   [3 mul = 3 FLOPs] --
+  out.gamma[0][0][1] = out.gamma[0][1][0] = f_t * px;
+  out.gamma[0][0][2] = out.gamma[0][2][0] = f_t * py;
+  out.gamma[0][0][3] = out.gamma[0][3][0] = f_t * pz;
 
-  // Γ^t_tr = Γ^t_rt = M / (r²·f)
-  // r²·f (1 mul) + M/result (1 div) = 2 FLOPs
-  const double gamma_t_tr = M / (r2 * f);  // FLOP: 1 mul, 1 div = 2
-  out.gamma[0][0][1] = gamma_t_tr;
-  out.gamma[0][1][0] = gamma_t_tr;  // symmetry copy
+  // -- Γ^i_tt = f_r · x_i   [3 mul = 3 FLOPs] --
+  out.gamma[1][0][0] = f_r * px;
+  out.gamma[2][0][0] = f_r * py;
+  out.gamma[3][0][0] = f_r * pz;
 
-  // Γ^r_tt = M·f / r²
-  // M·f (1 mul) + /r² (1 div) = 2 FLOPs
-  out.gamma[1][0][0] = (M * f) / r2;  // FLOP: 1 mul, 1 div = 2
+  // -- Spatial Γ: precompute f_s · x_i   [3 mul = 3 FLOPs] --
+  const double fs_x = f_s * px;
+  const double fs_y = f_s * py;
+  const double fs_z = f_s * pz;
 
-  // Γ^r_rr = -M / (r²·f) = -Γ^t_tr
-  // negate (1 FLOP)
-  out.gamma[1][1][1] = -gamma_t_tr;  // FLOP: 1 neg = 1
+  // Γ^x_** [15 neg = 15 FLOPs across all spatial]
+  out.gamma[1][1][1] = -fs_x;                       // Γ^x_xx
+  out.gamma[1][1][2] = out.gamma[1][2][1] = -fs_y;  // Γ^x_xy
+  out.gamma[1][1][3] = out.gamma[1][3][1] = -fs_z;  // Γ^x_xz
+  out.gamma[1][2][2] = +fs_x;                       // Γ^x_yy
+  out.gamma[1][3][3] = +fs_x;                       // Γ^x_zz
 
-  // Γ^r_θθ = -(r - 2M) = -r·f
-  // negate precomputed r·f (1 FLOP)
-  out.gamma[1][2][2] = -r_f;  // FLOP: 1 neg = 1
+  // Γ^y_**
+  out.gamma[2][2][2] = -fs_y;
+  out.gamma[2][1][2] = out.gamma[2][2][1] = -fs_x;
+  out.gamma[2][2][3] = out.gamma[2][3][2] = -fs_z;
+  out.gamma[2][1][1] = +fs_y;
+  out.gamma[2][3][3] = +fs_y;
 
-  // Γ^r_φφ = -(r - 2M)·sin²θ = -r·f·sin²θ
-  // r·f·sin²θ (1 mul) + negate (1 FLOP) = 2 FLOPs
-  out.gamma[1][3][3] = -(r_f * sin2_theta);  // FLOP: 1 mul, 1 neg = 2
-
-  // Γ^θ_rθ = Γ^θ_θr = 1/r  (precomputed)
-  out.gamma[2][1][2] = inv_r;  // FLOP: 0
-  out.gamma[2][2][1] = inv_r;  // symmetry copy
-
-  // Γ^θ_φφ = -sin(θ)·cos(θ)
-  // sinθ·cosθ (1 mul) + negate = 2 FLOPs
-  out.gamma[2][3][3] = -(sin_theta * cos_theta);  // FLOP: 1 mul, 1 neg = 2
-
-  // Γ^φ_rφ = Γ^φ_φr = 1/r  (precomputed)
-  out.gamma[3][1][3] = inv_r;  // FLOP: 0
-  out.gamma[3][3][1] = inv_r;  // symmetry copy
-
-  // Γ^φ_θφ = Γ^φ_φθ = cos(θ)/sin(θ) = cot(θ)  (precomputed)
-  out.gamma[3][2][3] = cot_theta;  // FLOP: 0
-  out.gamma[3][3][2] = cot_theta;  // symmetry copy
-
-  // Values total: 2+2+1+1+2+2 = 10 FLOPs (matching derivation)
+  // Γ^z_**
+  out.gamma[3][3][3] = -fs_z;
+  out.gamma[3][1][3] = out.gamma[3][3][1] = -fs_x;
+  out.gamma[3][2][3] = out.gamma[3][3][2] = -fs_y;
+  out.gamma[3][1][1] = +fs_z;
+  out.gamma[3][2][2] = +fs_z;
+  // Total Gamma values: 3+3+3+15 = 24 FLOPs. Grand total: ~66 FLOPs.
 }
 
 /**

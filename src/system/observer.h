@@ -9,12 +9,9 @@
 #include <array>
 #include <cstdint>
 
-static constexpr int MAX_BODIES = 64;
+#include "../engine/metric.h"
 
-struct Vec4 {
-  double v[4];
-  double& operator[](int i) { return v[i]; }
-};
+static constexpr int MAX_BODIES = 64;
 
 class SimulationState;
 
@@ -34,9 +31,15 @@ class Observer {
 
   Observer(Vec4 pos, Vec4 vel, uint64_t id);
   Measurement measure(const SimulationState&) const;
-  Vec4& position() { return pos_; }
-  Vec4& velocity() { return vel_; }
-  uint64_t id() const { return id_; }
+  Vec4& position() {
+    return pos_;
+  }
+  Vec4& velocity() {
+    return vel_;
+  }
+  uint64_t id() const {
+    return id_;
+  }
 
  private:
   Vec4 pos_, vel_;
