@@ -22,7 +22,7 @@ class Body {
 
   /**
    * @brief Advances the body by one affine-parameter step using the integrator selected by `acc_`.
-   * @param dl Affine parameter increment @f$\Delta\lambda@f$.
+    * @param dl Affine parameter increment Δλ.
    */
   void step(const SpacetimeField& field, double dl);
 
@@ -55,11 +55,11 @@ class Body {
   Worldline worldline_;
   std::unordered_map<std::string, double> props_;
 
-  /** @brief RK4 geodesic integrator step; @f$O(h^4)@f$ global truncation error. */
+  /** @brief RK4 geodesic integrator step; O(h⁴) global truncation error. */
   void step_rk4(const SpacetimeField&, double dl);
-  /** @brief DOP853 8th-order geodesic integrator step; @f$O(h^8)@f$ global truncation error. */
+  /** @brief DOP853 8th-order geodesic integrator step; O(h⁸) global truncation error. */
   void step_rk8(const SpacetimeField&, double dl);
-  /** @brief Reprojects @f$u^\mu@f$ so @f$g_{\mu\nu}u^\mu u^\nu = -1@f$ stays within
+  /** @brief Reprojects u^μ so g_{μν}u^μu^ν = -1 stays within
    * `norm_tolerance`. */
   void enforce_norm_at(const SpacetimeField&, WorldlinePoint&) const;
   /** @brief Reprojects the latest worldline point to enforce the norm constraint. */

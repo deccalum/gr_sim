@@ -15,8 +15,8 @@
  * iteration counts from these weights at runtime.
  * @note `weight` is the main budget-allocation hint. Strong-field logic may still increase the
  * final budget beyond the preset's nominal request.
- * @note `step_size` scales the affine-parameter increment @f$\Delta\lambda@f$ relative to the
- * local @f$r_s = 2M@f$; it is dimensionless in geometric units (@f$G = c = 1@f$).
+ * @note `step_size` scales the affine-parameter increment Δλ relative to the
+ * local rₛ = 2M; it is dimensionless in geometric units (G = c = 1).
  */
 struct AccuracyProfile {
   int integrator_order = 4;  // 2=Euler, 4=RK4, 8=DOP853
@@ -27,7 +27,7 @@ struct AccuracyProfile {
   int pn_order = 0;            // 0=Schwarzschild, 1/2/3=PN
   double amr_refinement_level = 1.0;
 
-  bool enforce_norm = true;  // Reprojects u^μ when g_μν u^μ u^ν deviates from -1
+  bool enforce_norm = true;  // Reprojects u^μ when g_{μν}u^μu^ν deviates from -1
   double norm_tolerance = 1e-6;
 
   double weight = 0.5;  // Used for budget allocation (0.0 - 1.0)

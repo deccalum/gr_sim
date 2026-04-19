@@ -20,18 +20,18 @@ class MetricProvider {
  public:
   virtual ~MetricProvider() = default;
   /**
-   * @param x Spacetime coordinate @f$(t,r,\theta,\varphi)@f$.
-   * @param g Output @f$g_{\mu\nu}@f$, written in row-major order.
+   * @param x Spacetime coordinate (t, r, θ, φ).
+   * @param g Output g_{μν}, written in row-major order.
    */
   virtual void metric(const Vec4& x, Mat4& g, const AccuracyProfile& acc) const = 0;
   /**
    * @param x Spacetime coordinate.
-   * @param out Output @f$\Gamma^\sigma{}_{\mu\nu}@f$ with tensor order [σ][μ][ν].
+   * @param out Output Γ^σ_{μν} with tensor order [σ][μ][ν].
    */
   virtual void christoffel(const Vec4& x, Gamma& out, const AccuracyProfile& acc) const = 0;
   /**
    * @param x Spacetime coordinate.
-   * @param ginv Output contravariant metric @f$g^{\mu\nu}@f$.
+   * @param ginv Output contravariant metric g^{μν}.
    */
   virtual void metric_inverse(const Vec4& x, Mat4& ginv, const AccuracyProfile& acc) const = 0;
 };
@@ -41,9 +41,9 @@ class MetricProvider {
  * @param x Spacetime coordinate.
  * @param g Output metric tensor.
  * @param acc Accuracy profile.
- * 
- * ρ  = sqrt(x² + y² + z²)      isotropic radial distance
- * α  = M / (2ρ)                 compactness parameter
- * ψ  = 1 + α                    conformal factor
- * A  = (1 - α) / (1 + α)        lapse factor
+ *
+ * ρ = sqrt(x² + y² + z²)  isotropic radial distance
+ * α = M / (2ρ)             compactness parameter
+ * ψ = 1 + α                conformal factor
+ * A = (1 - α) / (1 + α)    lapse factor
  */

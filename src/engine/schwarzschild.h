@@ -13,13 +13,11 @@
 
 /**
  * @brief Exact vacuum metric for a static, spherically symmetric mass.
- * @details The line element in spherical coordinates @f$(t,\,r,\,\theta,\,\varphi)@f$ is
- * @f[
- *   ds^2 = -\!\left(1-\frac{2M}{r}\right)dt^2
- *          + \left(1-\frac{2M}{r}\right)^{-1}dr^2
- *          + r^2\,d\theta^2 + r^2\sin^2\!\theta\,d\varphi^2
- * @f]
- * Events at @f$r \leq 2M@f$ are inside the event horizon; callers should guard
+ * @details The line element in spherical coordinates (t, r, θ, φ) is:
+ *
+ *   ds² = -(1 - 2M/r) dt² + (1 - 2M/r)⁻¹ dr² + r² dθ² + r² sin²θ dφ²
+ *
+ * Events at r ≤ 2M are inside the event horizon; callers should guard
  * against degenerate metric evaluations there.
  */
 class SchwarzschildMetric final : public MetricProvider, public Validatable {
@@ -30,9 +28,7 @@ class SchwarzschildMetric final : public MetricProvider, public Validatable {
   void christoffel(const Vec4& x, Gamma& g, const AccuracyProfile& acc) const override;
   void metric_inverse(const Vec4& x, Mat4& ginv, const AccuracyProfile& acc) const override;
 
-  double mass() const {
-    return M_;
-  }
+  double mass() const { return M_; }
 
   // Validatable interface — run via ValidatorRunner or CUI "validate"
   ValidationResult validate() const override;

@@ -20,17 +20,15 @@ namespace {
  * @brief Pre-computed scalar factors for isotropic Schwarzschild coordinates.
  *
  * All Christoffel and metric expressions factor through a small set of scalars that depend only on
- * the isotropic radius @f$\rho = \sqrt{x^2+y^2+z^2}@f$ and the mass @f$M@f$.  Grouping them here
+ * the isotropic radius ρ = √(x² + y² + z²) and the mass M. Grouping them here
  * avoids redundant divisions inside the hot tensor-fill loops and makes the symbolic correspondence
  * to textbook expressions explicit.
  *
  * Coordinate conventions (isotropic Cartesian, G = c = 1):
- * @f[
- *   \rho = \sqrt{x^2+y^2+z^2}, \quad
- *   \alpha = \frac{M}{2\rho}, \quad
- *   \psi = 1+\alpha, \quad
- *   A = \frac{1-\alpha}{1+\alpha}
- * @f]
+ *   ρ = √(x² + y² + z²)
+ *   α = M / (2ρ)
+ *   ψ = 1 + α
+ *   A = (1 - α) / (1 + α)
  */
 struct IsoFactors {
   double rho;        // isotropic radius ρ
@@ -43,8 +41,8 @@ struct IsoFactors {
   double A;          // (1 - α) / ψ
   double A2;         // A²
   double two_alpha;  // 2α
-  double f_t;        // 2α / (A · ρ² · ψ²)  → Γ^t_ti = f_t · x_i
-  double f_r;        // 2Aα / (ρ² · ψ⁶)     → Γ^i_tt = f_r · x_i
+  double f_t;        // 2α / (A · ρ² · ψ²)  → Γ^t_{ti} = f_t · x_i
+  double f_r;        // 2Aα / (ρ² · ψ⁶)     → Γ^i_{tt} = f_r · x_i
   double f_s;        // 2α / (ρ² · ψ)       → spatial Γ factor
 };
 
@@ -54,7 +52,7 @@ struct IsoFactors {
  * Marked `noinline` so the compiler emits a distinct symbol that the benchmark tool can profile
  * separately from the outer tensor-fill loops.
  *
- * @param x Isotropic Cartesian position @f$(t, x, y, z)@f$ in geometric units.
+ * @param x Isotropic Cartesian position (t, x, y, z) in geometric units.
  * @param M Gravitational mass in geometric units (G = c = 1).
  * @return  Fully populated `IsoFactors` ready for use in @ref metric and @ref christoffel.
  */
@@ -83,7 +81,7 @@ __attribute__((noinline)) IsoFactors compute_factors(const Vec4& x, double M) {
 
 /**
  * @brief Evaluates the diagonal Schwarzschild metric tensor at x.
- * The line element is ds² = -(1 - 2M/r)dt² + (1 - 2M/r)^-1dr² + r²dΩ², so only four diagonal
+ * The line element is ds² = -(1 - 2M/r)dt² + (1 - 2M/r)⁻¹dr² + r²dΩ², so only four diagonal
  * entries are non-zero in these coordinates.
  */
 void SchwarzschildMetric::metric(const Vec4& x, Mat4& g, const AccuracyProfile&) const {
@@ -98,19 +96,11 @@ void SchwarzschildMetric::metric(const Vec4& x, Mat4& g, const AccuracyProfile&)
 }
 
 /**
- * @brief Placeholder for the analytic Christoffel symbols.
- * The final implementation should emit only the non-zero Γ^σ_μν components allowed by
- * AccuracyProfile.christoffel_terms and avoid numerical differentiation entirely.
- */
-void SchwarzschildMetric::christoffel(const Vec4&, Gamma& out, const AccuracyProfile&) const {
-  out = {};
-}
-
-/**
  * @brief Forms g^μν by exploiting the diagonal structure of Schwarzschild coordinates.
  */
 void SchwarzschildMetric::metric_inverse(const Vec4& x, Mat4& ginv,
                                          const AccuracyProfile& acc) const {
+  (void)acc;
   ginv = {};
 
   const IsoFactors f = compute_factors(x, M_);
@@ -124,33 +114,34 @@ void SchwarzschildMetric::metric_inverse(const Vec4& x, Mat4& ginv,
  * @brief Analytic Christoffel symbols for the isotropic Schwarzschild metric.
  *
  * Only the non-zero independent components are written; lower-index symmetry
- * @f$\Gamma^\sigma{}_{\mu\nu} = \Gamma^\sigma{}_{\nu\mu}@f$ is applied explicitly so the caller
+ * Γ^σ_{μν} = Γ^σ_{νμ} is applied explicitly so the caller
  * never reads un-filled entries.
  *
  * Non-zero families (factor notation matches `IsoFactors`):
- * - @f$\Gamma^t{}_{ti} = f_t \, x_i@f$  and its symmetric partner @f$\Gamma^t{}_{it}@f$
- * - @f$\Gamma^i{}_{tt} = f_r \, x_i@f$
- * - Spatial blocks @f$\Gamma^i{}_{jk}@f$ expressed via @f$f_s\,x_i@f$; diagonal terms carry a
+ * - Γ^t_{ti} = f_t · x_i and its symmetric partner Γ^t_{it}
+ * - Γ^i_{tt} = f_r · x_i
+ * - Spatial blocks Γ^i_{jk} expressed via f_s·x_i; diagonal terms carry a
  *   minus sign, cross-index terms carry a plus sign (see inline labels).
  *
- * @param x   Isotropic Cartesian position @f$(t, x, y, z)@f$.
+ * @param x   Isotropic Cartesian position (t, x, y, z).
  * @param gamma Output tensor (zeroed on entry via memset).
  * @param acc Unused in this implementation; reserved for future PN-order gating.
  */
 void SchwarzschildMetric::christoffel(const Vec4& x, Gamma& gamma,
                                       const AccuracyProfile& acc) const {
-  std::memset(&gamma, 0, sizeof(gamma));  // Zero-fill all entries.
+  (void)acc;
+  gamma = {};  // Zero-fill all entries.
 
   const IsoFactors f = compute_factors(x, M_);
   const double fs_x = f.f_s * x[idx::X];
   const double fs_y = f.f_s * x[idx::Y];
   const double fs_z = f.f_s * x[idx::Z];
 
-  gamma[idx::T][idx::T][idx::X] = f.f_t * x[idx::X];              // Γ^t_tt = f_t · x_i
+  gamma[idx::T][idx::T][idx::X] = f.f_t * x[idx::X];              // Γ^t_ti = f_t · x_i
   gamma[idx::T][idx::X][idx::T] = gamma[idx::T][idx::T][idx::X];  // symmetry
-  gamma[idx::T][idx::T][idx::Y] = f.f_t * x[idx::Y];              // Γ^t_tt = f_t · x_i
+  gamma[idx::T][idx::T][idx::Y] = f.f_t * x[idx::Y];              // Γ^t_ti = f_t · x_i
   gamma[idx::T][idx::Y][idx::T] = gamma[idx::T][idx::T][idx::Y];  // symmetry
-  gamma[idx::T][idx::T][idx::Z] = f.f_t * x[idx::Z];              // Γ^t_tt = f_t · x_i
+  gamma[idx::T][idx::T][idx::Z] = f.f_t * x[idx::Z];              // Γ^t_ti = f_t · x_i
   gamma[idx::T][idx::Z][idx::T] = gamma[idx::T][idx::T][idx::Z];  // symmetry
 
   gamma[idx::X][idx::T][idx::T] = f.f_r * x[idx::X];  // Γ^i_tt = f_r · x_i
@@ -204,19 +195,19 @@ void SchwarzschildMetric::christoffel(const Vec4& x, Gamma& gamma,
  * @brief Physics regression suite for `SchwarzschildMetric`.
  *
  * Evaluates all three metric methods (@ref metric, @ref metric_inverse, @ref christoffel) at the
- * canonical test point @f$\rho = 5M@f$ (isotropic Cartesian position @f$(0, 5M, 0, 0)@f$) and
+ * canonical test point ρ = 5M (isotropic Cartesian position (0, 5M, 0, 0)) and
  * compares against known-answer values derived analytically:
  *
  * |    Symbol    | Value |
  * |--------------|-------|
- * | @f$\alpha@f$ |   0.1 |
- * | @f$\psi@f$   |   1.1 |
- * | @f$A@f$      |  9/11 |
- * | @f$g_{tt}@f$ | @f$-(9/11)^2 = -81/121@f$ |
- * | @f$g_{xx}@f$ | @f$1.1^4 = 1.4641@f$      |
+ * | α |   0.1 |
+ * | ψ |   1.1 |
+ * | A |  9/11 |
+ * | g_tt | -(9/11)² = -81/121 |
+ * | g_xx | 1.1⁴ = 1.4641 |
  *
- * Tolerance is @f$10^{-14}@f$ (≈ 10× machine epsilon for `double`). The function also checks
- * lower-index symmetry @f$\Gamma^t{}_{tx} = \Gamma^t{}_{xt}@f$ and a spatial Christoffel value.
+ * Tolerance is 10⁻¹⁴ (≈ 10× machine epsilon for `double`). The function also checks
+ * lower-index symmetry Γ^t_{tx} = Γ^t_{xt} and a spatial Christoffel value.
  *
  * @return ValidationResult with `passed = true` and a summary string on success, or a failure
  *         detail identifying the first failing check.
@@ -267,7 +258,7 @@ ValidationResult SchwarzschildMetric::validate() const {
     return r;
   }
 
-  // Check metric inverse: g^μν g_νλ = δ^μ_λ  (diagonal → just reciprocal check)
+  // Check metric inverse: g^μνg_νλ = δ^μ_λ (diagonal → just reciprocal check)
   Mat4 ginv{};
   metric_inverse(x_test, ginv, acc);
   if (!check("g^tt·g_tt", ginv[0][0] * g[0][0], -1.0)) {
@@ -277,7 +268,7 @@ ValidationResult SchwarzschildMetric::validate() const {
     return r;
   }
 
-  // Check Christoffel: Γ^x_tt = f_r · x at test point
+  // Check Christoffel: Γ^x_{tt} = f_r · x at test point
   // f_r = 2Aα/(ρ²ψ⁶), x_1 = ρ = 5M
   // f_r · ρ = 2*(9/11)*0.1 / (25M² * 1.1⁶) * 5M
   //         = 2*(9/11)*0.1*5M / (25M² * 1.771561)
@@ -291,20 +282,20 @@ ValidationResult SchwarzschildMetric::validate() const {
     return r;
   }
 
-  // Check Γ symmetry: Γ^t_tx == Γ^t_xt at test point
+  // Check Γ symmetry: Γ^t_{tx} = Γ^t_{xt} at test point
   if (!check("Γ^t_tx==Γ^t_xt", gam[idx::T][idx::T][idx::X], gam[idx::T][idx::X][idx::T])) {
     return r;
   }
 
-  // Check one spatial Christoffel: Γ^y_yy = -f_s · y
+  // Check one spatial Christoffel: Γ^y_{yy} = -f_s · y
   // At x=(0,ρ,0,0): y=0 → Γ^y_yy = 0
   if (!check("Γ^y_yy@y=0", gam[idx::Y][idx::Y][idx::Y], 0.0)) {
     return r;
   }
 
-  // Check Γ^x_yy = +f_s · x at test point:
+  // Check Γ^x_{yy} = +f_s · x at test point:
   // f_s = 2α/(ρ²ψ), x_1 = ρ
-  // Γ^x_yy = 2α/(ρ²ψ) · ρ = 2*0.1/(5M * 1.1) = 0.2/(5.5M)
+  // Γ^x_{yy} = 2α/(ρ²ψ) · ρ = 2*0.1/(5M * 1.1) = 0.2/(5.5M)
   const double gamma_x_yy_ref = (2.0 * alpha_ref / ((rho * rho) * psi_ref)) * rho;
   if (!check("Γ^x_yy", gam[idx::X][idx::Y][idx::Y], gamma_x_yy_ref)) {
     return r;

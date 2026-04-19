@@ -293,9 +293,6 @@ void StubSchwarzschildChristoffel::execute(const unsigned char* input,
   const auto& inp = *reinterpret_cast<const ChristoffelInput*>(input);
   auto& out = *reinterpret_cast<ChristoffelOutput*>(output_sink);
 
-  const auto& inp = *reinterpret_cast<const ChristoffelInput*>(input);
-  auto& out = *reinterpret_cast<ChristoffelOutput*>(output_sink);
-
   const double px = inp.x[1];  // x spatial coordinate
   const double py = inp.x[2];  // y
   const double pz = inp.x[3];  // z

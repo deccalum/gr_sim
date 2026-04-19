@@ -13,7 +13,7 @@ using Vec4 = std::array<double, 4>;
 
 /**
  * @brief One sampled point on a body's worldline.
- * @note For massive bodies the invariant @f$g_{\mu\nu}\,u^\mu u^\nu = -1@f$ must hold;
+ * @note For massive bodies the invariant g_{μν}u^μu^ν = -1 must hold;
  * `norm` stores the raw sampled value so drift can be compared against
  * `AccuracyProfile::norm_tolerance`.
  */
@@ -22,7 +22,7 @@ struct WorldlinePoint {
   Vec4 x{};             // Coordinate position x^μ.
   Vec4 u{};             // Four-velocity u^μ = dx^μ/dλ.
   double tau = 0.0;     // Accumulated proper time.
-  double norm = 0.0;    // g_μν u^μ u^ν, expected near -1 for massive bodies.
+  double norm = 0.0;    // g_{μν}u^μu^ν, expected near -1 for massive bodies.
 };
 
 /**

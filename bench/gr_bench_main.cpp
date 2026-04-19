@@ -4,6 +4,7 @@
  * reusable HardwareProfile cache for simulator startup.
  */
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

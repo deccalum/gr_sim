@@ -16,12 +16,12 @@ class SpacetimeField {
   explicit SpacetimeField(std::unique_ptr<MetricProvider> metric);
 
   /**
-   * @brief Evaluates @f$g_{\mu\nu}@f$ and @f$\Gamma^\sigma{}_{\mu\nu}@f$ at a spacetime point.
+   * @brief Evaluates g_{μν} and Γ^σ_{μν} at a spacetime point.
    * @details The current stub always queries the metric provider directly, then flags a
    * neighborhood for AMR refresh so later cache-aware backends can rebuild local geometry.
    * @param x Spacetime coordinate 4-vector.
-   * @param g Output covariant metric @f$g_{\mu\nu}@f$.
-   * @param gamma Output Christoffel symbol @f$\Gamma^\sigma{}_{\mu\nu}@f$.
+   * @param g Output covariant metric g_{μν}.
+   * @param gamma Output Christoffel symbol Γ^σ_{μν}.
    */
   void eval_at(const Vec4& x, Mat4& g, Gamma& gamma, const AccuracyProfile& acc) const;
 

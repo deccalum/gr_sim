@@ -28,8 +28,8 @@ inline Vec4 vec4_scale(const Vec4& a, double s) {
 
 /**
  * @brief Packed (x, u) state vector for the geodesic ODE.
- * Used as both the state and the increment @f$k_i@f$ in RK staging, so the same
- * arithmetic helpers operate on both.
+ * Used as both the state and the increment kᵢ in RK staging, so the same arithmetic helpers
+ * operate on both.
  */
 struct GeodesicState {
   Vec4 x;  // coordinate position x^μ
@@ -50,15 +50,13 @@ inline GeodesicState state_scale(const GeodesicState& k, double s) {
  * @brief Evaluates the geodesic ODE right-hand side at state @p s.
  *
  * The geodesic equation is
- * @f[
- *   \frac{dx^\mu}{d\lambda} = u^\mu, \qquad
- *   \frac{du^\sigma}{d\lambda} = -\Gamma^\sigma{}_{\mu\nu}\,u^\mu u^\nu.
- * @f]
- * The returned GeodesicState holds the derivatives @f$(dx/d\lambda, du/d\lambda)@f$
- * and is used directly as a stage increment @f$k_i@f$ by the RK integrators.
+ *   dx^μ / dλ = u^μ,
+ *   du^σ / dλ = -Γ^σ_{μν} u^μ u^ν.
+ * The returned GeodesicState holds the derivatives (dx/dλ, du/dλ) and is used directly as a
+ * stage increment kᵢ by the RK integrators.
  *
- * @param field Spacetime field queried for @f$g_{\mu\nu}@f$ and @f$\Gamma@f$ at s.x.
- * @param s     Current state @f$(x^\mu, u^\mu)@f$.
+ * @param field Spacetime field queried for g_{μν} and Γ^σ_{μν} at s.x.
+ * @param s     Current state (x^μ, u^μ).
  * @param acc   Accuracy profile forwarded to field.eval_at().
  * @return      d/dλ of the geodesic state at s.
  */
@@ -86,8 +84,8 @@ GeodesicState rhs(const SpacetimeField& field, const GeodesicState& s, const Acc
 }
 
 /**
- * @brief Returns @f$g_{\mu\nu} u^\mu u^\nu@f$.
- * Negative for timelike worldlines (signature @f$-{+}{+}{+}@f$).
+ * @brief Returns g_{μν}u^μu^ν.
+ * Negative for timelike worldlines (signature (-,+,+,+)).
  */
 double norm_sq(const Mat4& g, const Vec4& u) {
   double n = 0.0;
@@ -101,8 +99,8 @@ double norm_sq(const Mat4& g, const Vec4& u) {
 /**
  * @brief Constructs a body and pushes its initial worldline point.
  * @param mass  Gravitational mass in geometric units; 0 for photons.
- * @param pos   Initial 4-position @f$x^\mu@f$.
- * @param vel   Initial 4-velocity @f$u^\mu@f$ (caller must ensure correct norm).
+ * @param pos   Initial 4-position x^μ.
+ * @param vel   Initial 4-velocity u^μ (caller must ensure correct norm).
  * @param id    Unique integer identifier assigned by the simulation.
  * @param acc   Accuracy profile controlling integrator order and norm enforcement.
  */
@@ -203,4 +201,8 @@ void Body::enforce_norm(const SpacetimeField& field) {
   WorldlinePoint p = worldline_.latest();
   enforce_norm_at(field, p);
   worldline_.points.back() = p;  // Update the latest point with the enforced norm.
+}
+void Body::step_rk8(const SpacetimeField& field, double dl) {
+  // STUB: Fallback back to RK4 until implemented
+  step_rk4(field, dl);
 }

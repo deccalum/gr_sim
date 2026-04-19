@@ -23,13 +23,13 @@ inline constexpr double c4  = c2 * c2;
 
 namespace geom {
 /**
- * @brief Conversion factors between SI and the internal @f$G = c = 1@f$ convention.
- * @details Multiplying a time @f$\tau@f$ by @f$c@f$ expresses it as a length. Multiplying a
- * mass @f$M@f$ by @f$G/c^2@f$ maps it to the geometric length scale
- * @f$\ell_M = GM/c^2@f$ (half the Schwarzschild radius @f$r_s = 2M@f$).
+ * @brief Conversion factors between SI and the internal G = c = 1 convention.
+ * @details Multiplying a time τ by c expresses it as a length. Multiplying a
+ * mass M by G/c² maps it to the geometric length scale
+ * ℓ_M = GM/c² (half the Schwarzschild radius rₛ = 2M).
  */
-inline constexpr double meters_per_second = 1.0 / si::c;  // c^-1: seconds → meters.
-inline constexpr double meters_per_kg = si::G / si::c2;   // G/c^2: kilograms → meters.
+inline constexpr double meters_per_second = 1.0 / si::c;  // c⁻¹: seconds → meters.
+inline constexpr double meters_per_kg = si::G / si::c2;   // G/c²: kilograms → meters.
 
 inline constexpr double seconds_per_meter = 1.0 / si::c;
 inline constexpr double kg_per_meter = si::c2 / si::G;
@@ -60,11 +60,11 @@ namespace limits {
 /**
  * @brief Regime thresholds and normalization targets used by the integrator.
  */
-inline constexpr double timelike_norm           = -1.0; // g_uv u^u u^v = -1 for massive bodies.
-inline constexpr double null_norm               = 0.0;  // g_uv k^u k^v = 0 for null trajectories.
-inline constexpr double strong_field_r_over_M   = 6.0;  // Near or inside the Schwarzschild ISCO (r/M = 6).
-inline constexpr double schwarzschild_coeff     = 2.0;  // r_s = 2M.
-inline constexpr double isco_r_over_M           = 6.0;  // Innermost stable circular orbit (r/M = 6).
+inline constexpr double timelike_norm         = -1.0;  // g_{μν}u^μu^ν = -1 for massive bodies.
+inline constexpr double null_norm             = 0.0;   // g_{μν}k^μk^ν = 0 for null trajectories.
+inline constexpr double strong_field_r_over_M = 6.0;   // Near or inside the Schwarzschild ISCO (r/M = 6).
+inline constexpr double schwarzschild_coeff   = 2.0;   // rₛ = 2M.
+inline constexpr double isco_r_over_M         = 6.0;   // Innermost stable circular orbit (r/M = 6).
 }  // namespace limits
 
 namespace convert {

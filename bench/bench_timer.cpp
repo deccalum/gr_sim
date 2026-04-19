@@ -50,6 +50,10 @@ double BenchTimer::elapsed_ns() const {
   return static_cast<double>(now - start_ns_);
 }
 
+void BenchTimer::start() {
+  start_ns_ = now_ns();
+}
+
 TimerSample BenchTimer::sample() const {
   return TimerSample{elapsed_ns()};
 }
