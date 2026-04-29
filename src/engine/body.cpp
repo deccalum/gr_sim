@@ -189,7 +189,7 @@ void Body::enforce_norm_at(const SpacetimeField& field, WorldlinePoint& p) const
   const double target = mass_ > 0.0 ? physics::timelike_norm : 0.0;
   const double drift = std::abs(n - target);
 
-  if (drift > acc_.norm_tolerance) return; // within tolerance - no action
+  if (drift < acc_.norm_tolerance) return; // within tolerance - no action
 
   if (mass_ > 0.0 && n < 0.0) {
     const double scale = std::sqrt(std::abs(target / n));

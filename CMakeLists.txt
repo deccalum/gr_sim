@@ -19,20 +19,33 @@ if(PkgConfig_FOUND)
 endif()
 
 # ---------------------------------------------------------------------------
-# gr_sim — main simulator
+# gr_sim_core — static library shared by simulator and exercises
 # ---------------------------------------------------------------------------
 
-file(GLOB_RECURSE SIM_SOURCES
+file(GLOB_RECURSE CORE_SOURCES
     src/*.cpp
     src/console/*.cpp
     src/system/*.cpp
     src/engine/*.cpp
 )
-# Exclude bench sources from simulator target
-list(FILTER SIM_SOURCES EXCLUDE REGEX "bench/")
+list(FILTER CORE_SOURCES EXCLUDE REGEX "bench/")
+list(FILTER CORE_SOURCES EXCLUDE REGEX "src/main\\.cpp$")
 
-add_executable(gr_sim ${SIM_SOURCES})
-target_include_directories(gr_sim PRIVATE src)
+add_library(gr_sim_core STATIC ${CORE_SOURCES})
+target_include_directories(gr_sim_core PUBLIC src)
+
+# ---------------------------------------------------------------------------
+# gr_sim — main simulator
+# ---------------------------------------------------------------------------
+
+add_executable(gr_sim src/main.cpp)
+target_link_libraries(gr_sim PRIVATE gr_sim_core)
+
+# ---------------------------------------------------------------------------
+# exercises
+# ---------------------------------------------------------------------------
+
+add_subdirectory(exercises)
 
 # ---------------------------------------------------------------------------
 # gr_bench — hardware characterization tool (standalone)

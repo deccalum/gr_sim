@@ -1,5 +1,5 @@
 /**
- * @brief Stub Schwarzschild metric implementation.
+ * @brief Schwarzschild metric implementation.
  * FLOP accounting for the future Christoffel kernel lives in expression_profile.cpp under
  * StubSchwarzschildChristoffel. When the full expressions are restored, g_rr at r = 10M should
  * match the textbook diagonal inverse to machine precision.
@@ -41,9 +41,9 @@ struct IsoFactors {
   double A;          // (1 - α) / ψ
   double A2;         // A²
   double two_alpha;  // 2α
-  double f_t;        // 2α / (A · ρ² · ψ²)  → Γ^t_{ti} = f_t · x_i
-  double f_r;        // 2Aα / (ρ² · ψ⁶)     → Γ^i_{tt} = f_r · x_i
-  double f_s;        // 2α / (ρ² · ψ)       → spatial Γ factor
+  double f_t;        // 2α  / (A · ρ² · ψ²)  → Γ^t_{ti} = f_t · x_i
+  double f_r;        // 2Aα / (ρ² · ψ⁶)      → Γ^i_{tt} = f_r · x_i
+  double f_s;        // 2α  / (ρ² · ψ)       → spatial Γ factor
 };
 
 /**
@@ -198,13 +198,13 @@ void SchwarzschildMetric::christoffel(const Vec4& x, Gamma& gamma,
  * canonical test point ρ = 5M (isotropic Cartesian position (0, 5M, 0, 0)) and
  * compares against known-answer values derived analytically:
  *
- * |    Symbol    | Value |
- * |--------------|-------|
- * | α |   0.1 |
- * | ψ |   1.1 |
- * | A |  9/11 |
- * | g_tt | -(9/11)² = -81/121 |
- * | g_xx | 1.1⁴ = 1.4641 |
+ * | Symbol |        Value        |
+ * |--------|---------------------|
+ * | α      | 0.1                 |
+ * | ψ      | 1.1                 |
+ * | A      | 9/11                |
+ * | g_tt   | -(9/11)² = -81/121  |
+ * | g_xx   | 1.1⁴     = 1.4641   |
  *
  * Tolerance is 10⁻¹⁴ (≈ 10× machine epsilon for `double`). The function also checks
  * lower-index symmetry Γ^t_{tx} = Γ^t_{xt} and a spatial Christoffel value.
@@ -261,7 +261,8 @@ ValidationResult SchwarzschildMetric::validate() const {
   // Check metric inverse: g^μνg_νλ = δ^μ_λ (diagonal → just reciprocal check)
   Mat4 ginv{};
   metric_inverse(x_test, ginv, acc);
-  if (!check("g^tt·g_tt", ginv[0][0] * g[0][0], -1.0)) {
+
+  if (!check("g^tt·g_tt", ginv[0][0] * g[0][0], 1.0)) {
     return r;
   }
   if (!check("g^xx·g_xx", ginv[1][1] * g[1][1], 1.0)) {

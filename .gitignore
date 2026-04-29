@@ -1,15 +1,18 @@
 build/
 cache/
+
 archive/
 /.vscode
 .github
 .clang-format
+.claude/*
 CLAUDE.md
 TODO.md
 
-# temp ignored
-docs/
-tools/
+docs/*
+!docs/SCHWARZSCHILD_METRIC.md
+tools/*
+data/*
 
 *.zst
 *.ilk
@@ -29,9 +32,6 @@ venv/
 ENV/
 .env
 .venv
-build/
-docs/generated/
-tools/math_renderer/__pycache__/
 archive/**/*.obj
 archive/**/*.pdb
 archive/**/*.ilk

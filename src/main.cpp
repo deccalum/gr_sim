@@ -1,91 +1,161 @@
 /**
- * @brief Boots the simulator with a Schwarzschild field and one seed trajectory.
- * Startup order mirrors the roadmap's field-first requirement: nothing else constructs until the
- * spacetime field exists. Hardcoded launch parameters remain until config loading is introduced.
+ * @brief Circular orbit validation at the Schwarzschild ISCO.
+ *
+ * Boots the field, places one massive body on a circular orbit at r=6M
+ * (isotropic ρ ≈ 4.95M), and logs E, L, norm, and radial position every
+ * N steps. A healthy integrator shows E and L drifting at O(dl⁴) over
+ * the full run, with norm staying near -1.0.
+ *
+ * What to look for in the output:
+ *   - E and L flat to ~6 significant figures over 1000 steps → integrator works
+ *   - E or L drifting by >1e-4 per 100 steps → step size too large or Γ wrong
+ *   - norm drifting from -1.0 → enforce_norm not firing (check tolerance)
+ *   - rho constant → circular orbit maintained
+ *   - rho growing/shrinking → orbit is spiraling (initial conditions or Γ error)
  */
 
+#include <cmath>
 #include <cstdio>
 #include <memory>
-#include <cmath>
 
-#include "console/console_ui.h"
 #include "console/logger.h"
 #include "engine/schwarzschild.h"
 #include "simulation.h"
 
-int main() {
-  log(LogLevel::Info, "main", "gr-simulator starting");
+namespace {
 
+/// Conserved energy for diagonal Schwarzschild: E = -g_tt u^t
+double compute_E(const SpacetimeField& field, const Vec4& pos, const Vec4& vel,
+                 const AccuracyProfile& acc) {
+  Mat4 g{};
+  Gamma gamma_unused{};
+  field.eval_at(pos, g, gamma_unused, acc);
+  return -g[0][0] * vel[0];
+}
+
+
+/// Conserved angular momentum: L = |x⃗ × p⃗| where p_i = g_ij u^j
+/// In the x-y plane: L = x·p_y - y·p_x
+double compute_L(const SpacetimeField& field, const Vec4& pos, const Vec4& vel,
+                 const AccuracyProfile& acc) {
+  Mat4 g{};
+  Gamma gamma_unused{};
+  field.eval_at(pos, g, gamma_unused, acc);
+  const double p_x = g[1][1] * vel[1];
+  const double p_y = g[2][2] * vel[2];
+  return pos[1] * p_y - pos[2] * p_x;
+}
+
+/// Isotropic radial distance: ρ = sqrt(x² + y² + z²)
+double compute_rho(const Vec4& pos) {
+  return std::sqrt(pos[1] * pos[1] + pos[2] * pos[2] + pos[3] * pos[3]);
+}
+
+/// 4-velocity norm: g_μν u^μ u^ν (should be -1 for massive)
+double compute_norm(const SpacetimeField& field, const Vec4& pos, const Vec4& vel,
+                    const AccuracyProfile& acc) {
+  Mat4 g{};
+  Gamma gamma_unused{};
+  field.eval_at(pos, g, gamma_unused, acc);
+  double n = 0.0;
+  for (int mu = 0; mu < 4; ++mu)
+    for (int nu = 0; nu < 4; ++nu) n += g[mu][nu] * vel[mu] * vel[nu];
+  return n;
+}
+
+}  // namespace
+
+int main() {
+  log(LogLevel::Info, "main", "gr_sim initiated");
+
+  // Field
   double M = 1.0;
   auto metric = std::make_unique<SchwarzschildMetric>(M);
+
+  // Run metric validator before anything else.
+  {
+    const auto vr = metric->validate();
+    log(vr.passed ? LogLevel::Info : LogLevel::Error, "validate", "%s: %s", vr.subsystem.c_str(),
+        vr.detail.c_str());
+    if (!vr.passed) return 1;
+  }
+
   Simulation sim(std::move(metric));
+  const AccuracyProfile acc = AccuracyProfile::Max();
+  sim.set_default_accuracy(acc);
 
-  sim.set_default_accuracy(AccuracyProfile::Max());
+  // Circular orbit at Schwarzschild r = 6M
+  // Convert to isotropic ρ: r = ρ(1 + M/(2ρ))²
+  // Inversion: ρ = (r - M + sqrt((r-M)² - M²)) / 2
+  const double R_schw = 6.0 * M;
+  const double rho_iso = (R_schw - M + std::sqrt((R_schw - M) * (R_schw - M) - M * M)) / 2.0;
 
-  // Setup circular orbit at Schwarzschild r = 6M
-  // Convert standard r to isotropic rho: r = rho (1 + M/2rho)^2
-  // rho = (r - M + sqrt((r-M)^2 - M^2)) / 2
-  double R_std = 6.0 * M;
-  double rho = (R_std - M + std::sqrt((R_std - M)*(R_std - M) - M*M)) / 2.0;
+  const Vec4 pos = {0.0, rho_iso, 0.0, 0.0};
 
-  Vec4 pos = {0.0, rho, 0.0, 0.0};
+  // Circular orbit velocity in isotropic Cartesian:
+  // At (ρ, 0, 0), motion is in the y-direction.
+  // dy/dt = ρ · dφ/dt, where dφ/dt = sqrt(M / r³) (Kepler in Schwarzschild r)
+  const double dphi_dt = std::sqrt(M / (R_schw * R_schw * R_schw));
+  const double dy_dt = rho_iso * dphi_dt;
 
-  // Compute circular orbit tangential velocity
-  // Requires Gamma^x_tt (u^t)^2 + Gamma^x_yy (u^y)^2 = 0
-  // u^y = sqrt(-Gamma^x_tt / Gamma^x_yy) * u^t
-  
-  Mat4 g{};
-  Gamma gamma{};
-  sim.field().eval_at(pos, g, gamma, AccuracyProfile::Max());
+  // Normalize: g_tt(u^t)² + g_yy(u^y)² = -1
+  // u^y = (dy/dt)·u^t, so: (g_tt + g_yy·(dy/dt)²)·(u^t)² = -1
+  Mat4 g_init{};
+  Gamma gamma_init{};
+  sim.field().eval_at(pos, g_init, gamma_init, acc);
 
-  // ratio = (u^y / u^t)^2
-  // For a circular orbit, Kepler's third law gives angular velocity (dphi/dt) = sqrt(M/R_std^3)
-  // In our Cartesian isotropic setup at (rho, 0, 0), dy/dt = rho * dphi/dt.
-  // So u^y / u^t = dy/dt = rho * sqrt(M / R_std^3)
-  double dy_dt = rho * std::sqrt(M / (R_std * R_std * R_std));
-  double ratio = dy_dt * dy_dt;
+  const double u_t = std::sqrt(-1.0 / (g_init[0][0] + g_init[2][2] * dy_dt * dy_dt));
+  const double u_y = dy_dt * u_t;
+  const Vec4 vel = {u_t, 0.0, u_y, 0.0};
 
-  log(LogLevel::Info, "main", "dy_dt=%f, ratio=%f", dy_dt, ratio);
+  Body* body = sim.add_body(1.0, pos, vel, acc);
 
-  // g_tt (u^t)^2 + g_yy (u^y)^2 = -1 (timelike)
-  // (u^t)^2 = -1 / (g_tt + g_yy * ratio)
-  double u_t = std::sqrt(-1.0 / (g[0][0] + g[2][2] * ratio));
-  double u_y = dy_dt * u_t;
+  // Initial diagnostics
+  const double E0 = compute_E(sim.field(), pos, vel, acc);
+  const double L0 = compute_L(sim.field(), pos, vel, acc);
+  const double norm0 = compute_norm(sim.field(), pos, vel, acc);
+  const double rho0 = compute_rho(pos);
 
-  Vec4 vel = {u_t, 0.0, u_y, 0.0};
-  
-  Body* body = sim.add_body(1.0, pos, vel, AccuracyProfile::Max());
+  log(LogLevel::Info, "main", "isotropic rho = %.6f  (Schwarzschild r = %.1f M)", rho_iso, R_schw);
+  log(LogLevel::Info, "main", "dy/dt = %.6f  u^t = %.6f  u^y = %.6f", dy_dt, u_t, u_y);
+  log(LogLevel::Info, "main", "E0 = %.12f  L0 = %.12f  norm0 = %.15f", E0, L0, norm0);
 
-  log(LogLevel::Info, "main", "starting circular orbit at isotropic rho = %f", rho);
-
+  // Integration with per-step logging
   const double total_lambda = 100.0;
-  const double base_step = 0.01;
-  
-  // Pre-run metrics
-  double E_initial = -g[0][0] * vel[0];
-  double L_initial = g[2][2] * pos[1] * vel[2];
-  
-  log(LogLevel::Info, "main", "Initial E = %.6f (expected ~0.942809)", E_initial);
-  log(LogLevel::Info, "main", "Initial L = %.6f (expected ~3.464102)", L_initial);
+  const double dl = 0.01;
+  const int total_steps = static_cast<int>(total_lambda / dl);
+  const int log_every = 100;
 
-  sim.run(total_lambda, base_step);
+  fprintf(stderr, "\n%8s  %14s  %14s  %14s  %10s  %10s  %10s\n", "step", "E", "dE", "dL", "norm+1",
+          "rho", "drho");
+  fprintf(stderr, "%8s  %14s  %14s  %14s  %10s  %10s  %10s\n", "--------", "--------------",
+          "--------------", "--------------", "----------", "----------", "----------");
 
-  // Post-run metrics
-  Vec4 final_pos = body->position();
-  Vec4 final_vel = body->velocity();
-  sim.field().eval_at(final_pos, g, gamma, AccuracyProfile::Max());
-  
-  // E = - g_tt u^t (ignoring cross terms since diagonal)
-  double E_final = -g[0][0] * final_vel[0];
-  
-  // Angular momentum L = x * p_y - y * p_x 
-  // p_i = g_ij u^j
-  double p_x = g[1][1] * final_vel[1];
-  double p_y = g[2][2] * final_vel[2];
-  double L_final = final_pos[1] * p_y - final_pos[2] * p_x;
+  for (int step = 0; step < total_steps; ++step) {
+    sim.step_once(dl);
 
-  log(LogLevel::Info, "main", "Final E = %.6f  Diff: %e", E_final, E_final - E_initial);
-  log(LogLevel::Info, "main", "Final L = %.6f  Diff: %e", L_final, L_final - L_initial);
+    if ((step + 1) % log_every == 0 || step == 0 || step == total_steps - 1) {
+      const Vec4& p = body->position();
+      const Vec4& v = body->velocity();
+
+      const double E = compute_E(sim.field(), p, v, acc);
+      const double L = compute_L(sim.field(), p, v, acc);
+      const double norm = compute_norm(sim.field(), p, v, acc);
+      const double rho = compute_rho(p);
+
+      fprintf(stderr, "%8d  %14.9f  %14.6e  %14.6e  %10.3e  %10.6f  %10.3e\n", step + 1, E, E - E0,
+              L - L0, norm + 1.0, rho, rho - rho0);
+    }
+  }
+
+  // Summary
+  const Vec4& pf = body->position();
+  const Vec4& vf = body->velocity();
+  const double Ef = compute_E(sim.field(), pf, vf, acc);
+  const double Lf = compute_L(sim.field(), pf, vf, acc);
+
+  fprintf(stderr, "\nFinal: dE/E0 = %.3e  dL/L0 = %.3e\n", (Ef - E0) / E0, (Lf - L0) / L0);
+
   log(LogLevel::Info, "main", "done");
   return 0;
 }
