@@ -4,22 +4,20 @@
 The goal is to grow it into a physically grounded, performance-conscious sandbox for relativistic simulation: starting with analytic metrics and testable integrators, then expanding toward observers, adaptive refinement, heterogeneous compute, and eventually real-time visualization.
 
 ---
-
 ## Roadmap
-
-### Phase 0 — Foundation ✓
+### Phase 0 — Foundation **OK**
 Units, coordinate convention (`G=c=1`, isotropic Cartesian `[t,x,y,z]`), `AccuracyProfile`,
 core math types, logger, validator infrastructure.
 
-### Phase 1 — Field + Geodesic Integration (active)
+### Phase 1 — Field + Geodesic Integration (active) **OK**
 - [x] `SchwarzschildMetric`: analytic `g_μν`, `Γ^σ_μν` (isotropic Cartesian, 30 non-zero entries)
 - [x] `SchwarzschildMetric::validate()` — known-answer checks at ρ=5M
-- [ ] `Body::step_rk4()` — replace Euler placeholder with RK4 + proper time accumulation
-- [ ] `SpawnQueue::process()` — wire actual body/observer creation
-- [ ] First end-to-end geodesic: circular orbit at r=6M, verify E and L conservation
+- [x] `Body::step_rk4()` — replace Euler placeholder with RK4 + proper time accumulation
+- [x] `SpawnQueue::process()` — wire actual body/observer creation
+- [x] First end-to-end geodesic: circular orbit at r=6M, verify E and L conservation
 
 ### Phase 2 — Main Loop + Time System
-- [ ] `TimeSystem` — wall / affine / coordinate / proper time channels
+- [x] `TimeSystem` — wall / affine / coordinate / proper time channels
 - [ ] `ConsoleUI` — observer-driven frame render (time dilation visible per body)
 - [ ] `SafeLoader` — resource pre-flight before spawn (stub → real thresholds)
 

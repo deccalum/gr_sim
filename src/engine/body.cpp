@@ -1,5 +1,5 @@
 /**
- * @brief Stub worldline integrator for bodies.
+ * @brief Worldline integrator for bodies.
  * The current implementation advances positions with a simple Euler step so the scheduler and
  * engine plumbing can run before the full geodesic solvers land.
  */
@@ -22,9 +22,7 @@ inline Vec4 vec4_add(const Vec4& a, const Vec4& b) {
 }
 
 /** @brief Returns a * s component-wise. */
-inline Vec4 vec4_scale(const Vec4& a, double s) {
-  return {a[0] * s, a[1] * s, a[2] * s, a[3] * s};
-}
+inline Vec4 vec4_scale(const Vec4& a, double s) { return {a[0] * s, a[1] * s, a[2] * s, a[3] * s}; }
 
 /**
  * @brief Packed (x, u) state vector for the geodesic ODE.
@@ -112,15 +110,9 @@ Body::Body(double mass, Vec4 pos, Vec4 vel, uint64_t id, AccuracyProfile acc)
   worldline_.push(p);
 }
 
-const Vec4& Body::position() const {
-  return worldline_.latest().x;
-}
-const Vec4& Body::velocity() const {
-  return worldline_.latest().u;
-}
-const Worldline& Body::worldline() const {
-  return worldline_;
-}
+const Vec4& Body::position() const { return worldline_.latest().x; }
+const Vec4& Body::velocity() const { return worldline_.latest().u; }
+const Worldline& Body::worldline() const { return worldline_; }
 
 void Body::step(const SpacetimeField& field, double dl) {
   switch (acc_.integrator_order) {
@@ -130,14 +122,9 @@ void Body::step(const SpacetimeField& field, double dl) {
     case 8:
       step_rk8(field, dl);
       break;
-    default:
-      step_rk4(field, dl);
-      break;  // Default to RK4
   }
 
-  const_cast<SpacetimeField&>(field).grid().mark_dirty_near(
-      worldline_.latest().x, 1.0);  // Phase-1 behavior: any sample invalidates a fixed-radius
-                                    // neighborhood until cached AMR arrives.
+  const_cast<SpacetimeField&>(field).grid().mark_dirty_near(worldline_.latest().x, 1.0);
 }
 
 void Body::step_rk4(const SpacetimeField& field, double dl) {
@@ -166,8 +153,7 @@ void Body::step_rk4(const SpacetimeField& field, double dl) {
     Gamma gamma_unused{};
     field.eval_at(next.x, g, gamma_unused, acc_);
     const double n = norm_sq(g, next.u);
-    next.tau = prev.tau + (n < 0.0 ? std::sqrt(-n) * dl
-                                   : 0.0);  // Only accumulate proper time if norm is timelike.
+    next.tau = prev.tau + (n < 0.0 ? std::sqrt(-n) * dl : 0.0);
     next.norm = n;
   } else {
     Mat4 g{};
@@ -184,13 +170,12 @@ void Body::enforce_norm_at(const SpacetimeField& field, WorldlinePoint& p) const
   Mat4 g{};
   Gamma gamma_unused{};
   field.eval_at(p.x, g, gamma_unused, acc_);
-  
+
   const double n = norm_sq(g, p.u);
   const double target = mass_ > 0.0 ? physics::timelike_norm : 0.0;
   const double drift = std::abs(n - target);
 
-  if (drift < acc_.norm_tolerance) return; // within tolerance - no action
-
+  if (drift < acc_.norm_tolerance) return;  // within tolerance - no action
   if (mass_ > 0.0 && n < 0.0) {
     const double scale = std::sqrt(std::abs(target / n));
     for (int i = 0; i < 4; ++i) p.u[i] *= scale;

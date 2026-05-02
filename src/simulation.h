@@ -6,6 +6,7 @@
  * bodies, observers, or engines are admitted to the simulation state.
  */
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -16,6 +17,12 @@
 #include "system/scheduler.h"
 #include "system/spawn_queue.h"
 #include "system/time_system.h"
+
+struct SimulationState {
+  std::vector<std::unique_ptr<Body>>& bodies;
+  ObserverManager& observers;
+  uint64_t& next_id;
+};
 
 class Simulation {
  public:
@@ -51,7 +58,7 @@ class Simulation {
 
  private:
   std::unique_ptr<SpacetimeField> field_;
-  std::vector<std::unique_ptr<Body> > bodies_;
+  std::vector<std::unique_ptr<Body>> bodies_;
   TimeSystem time_;
   ObserverManager observers_;
   SpawnQueue spawn_queue_;

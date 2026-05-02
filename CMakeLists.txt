@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.20)
 
 project(gr_sim CXX)
 
@@ -6,8 +6,13 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Compiler flags — required for correct FMA counting in gr_bench
-add_compile_options(-O2 -mfma -mfpmath=sse -march=native -Wall -Wextra)
+include(CheckCXXCompilerFlag)
+
+option(GR_SIM_ENABLE_NATIVE_BENCH_FLAGS
+    "Enable CPU-specific optimization flags for gr_bench when building on a supported machine"
+    OFF)
+
+add_compile_options(-O2 -Wall -Wextra)
 
 # ---------------------------------------------------------------------------
 # Optional dependencies
@@ -54,6 +59,26 @@ add_subdirectory(exercises)
 file(GLOB BENCH_SOURCES bench/*.cpp)
 add_executable(gr_bench ${BENCH_SOURCES})
 target_include_directories(gr_bench PRIVATE bench)
+
+if(GR_SIM_ENABLE_NATIVE_BENCH_FLAGS)
+    check_cxx_compiler_flag("-mfma"         _has_mfma)
+    check_cxx_compiler_flag("-mfpmath=sse"  _has_mfpmath_sse)
+    check_cxx_compiler_flag("-march=native" _has_march_native)
+
+    if(_has_mfma)
+        target_compile_options(gr_bench PRIVATE -mfma)
+    endif()
+    if(_has_mfpmath_sse)
+        target_compile_options(gr_bench PRIVATE -mfpmath=sse)
+    endif()
+    if(_has_march_native)
+        target_compile_options(gr_bench PRIVATE -march=native)
+    endif()
+
+    message(STATUS "gr_bench native ISA flags enabled when supported by the compiler")
+else()
+    message(STATUS "gr_bench native ISA flags disabled for portable builds")
+endif()
 
 if(PAPI_FOUND)
     target_compile_definitions(gr_bench PRIVATE HAVE_PAPI)

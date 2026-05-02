@@ -22,27 +22,19 @@ class Body {
 
   /**
    * @brief Advances the body by one affine-parameter step using the integrator selected by `acc_`.
-    * @param dl Affine parameter increment Δλ.
+   * @param dl Affine parameter increment Δλ.
    */
   void step(const SpacetimeField& field, double dl);
 
   const Vec4& position() const;
   const Vec4& velocity() const;
   const Worldline& worldline() const;
-  AccuracyProfile& accuracy() {
-    return acc_;
-  }
-  double mass() const {
-    return mass_;
-  }
-  uint64_t id() const {
-    return id_;
-  }
+  AccuracyProfile& accuracy() { return acc_; }
+  double mass() const { return mass_; }
+  uint64_t id() const { return id_; }
 
   // Engine-owned scalars flow through this bag instead of direct member access.
-  void set_property(const std::string& key, double val) {
-    props_[key] = val;
-  }
+  void set_property(const std::string& key, double val) { props_[key] = val; }
   double get_property(const std::string& key, double def = 0.0) const {
     auto it = props_.find(key);
     return it != props_.end() ? it->second : def;
@@ -59,8 +51,7 @@ class Body {
   void step_rk4(const SpacetimeField&, double dl);
   /** @brief DOP853 8th-order geodesic integrator step; O(h⁸) global truncation error. */
   void step_rk8(const SpacetimeField&, double dl);
-  /** @brief Reprojects u^μ so g_{μν}u^μu^ν = -1 stays within
-   * `norm_tolerance`. */
+  /** @brief Reprojects u^μ so g_{μν}u^μu^ν = -1 stays within `norm_tolerance`. */
   void enforce_norm_at(const SpacetimeField&, WorldlinePoint&) const;
   /** @brief Reprojects the latest worldline point to enforce the norm constraint. */
   void enforce_norm(const SpacetimeField&);

@@ -6,13 +6,15 @@
 
 #include "bench_timer.h"
 
-#include <time.h>
-
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <numeric>
+#include <thread>
+
+#include "platform.hpp"
 
 /**
  * @brief Internal constants for timer validation and variance reporting.
@@ -37,7 +39,7 @@ constexpr int MONOTONIC_READS = 10;
 
 uint64_t BenchTimer::now_ns() {
   struct timespec ts{};
-  clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+  clock_gettime(BENCH_CLOCK_RAW, &ts);
   return static_cast<uint64_t>(ts.tv_sec) * 1'000'000'000ULL + static_cast<uint64_t>(ts.tv_nsec);
 }
 
@@ -50,13 +52,9 @@ double BenchTimer::elapsed_ns() const {
   return static_cast<double>(now - start_ns_);
 }
 
-void BenchTimer::start() {
-  start_ns_ = now_ns();
-}
+void BenchTimer::start() { start_ns_ = now_ns(); }
 
-TimerSample BenchTimer::sample() const {
-  return TimerSample{elapsed_ns()};
-}
+TimerSample BenchTimer::sample() const { return TimerSample{elapsed_ns()}; }
 
 /**
  * @brief Queries clock resolution in nanoseconds.
@@ -64,9 +62,8 @@ TimerSample BenchTimer::sample() const {
 
 long BenchTimer::resolution_ns() {
   struct timespec res{};
-  if (clock_getres(CLOCK_MONOTONIC_RAW, &res) != 0) return -1;
-  if (res.tv_sec > 0)
-    return static_cast<long>(res.tv_sec) * 1'000'000'000L;
+  if (clock_getres(BENCH_CLOCK_RAW, &res) != 0) return -1;
+  if (res.tv_sec > 0) return static_cast<long>(res.tv_sec) * 1'000'000'000L;
   return static_cast<long>(res.tv_nsec);
 }
 
@@ -202,14 +199,12 @@ TimerSelfTestResult BenchTimer::self_test() {
 
   // -- Check 3: Accuracy check --
   {
-    const struct timespec sleep_req = {.tv_sec = 0,
-                                       .tv_nsec = static_cast<long>(SELF_TEST_SLEEP_NS)};
-
     result.sleep_requested_ns = SELF_TEST_SLEEP_NS;
 
     BenchTimer t;
     t.start();
-    clock_nanosleep(CLOCK_MONOTONIC, 0, &sleep_req, nullptr);
+    std::this_thread::sleep_for(
+        std::chrono::nanoseconds(static_cast<long long>(SELF_TEST_SLEEP_NS)));
     result.sleep_measured_ns = t.elapsed_ns();
 
     const double error = result.sleep_measured_ns - result.sleep_requested_ns;

@@ -23,7 +23,8 @@ struct SimulationTime {
  */
 class TimeSystem {
  public:
-  void advance(double dl);
+  TimeSystem();
+  void advance(double dl, double u_t = 1.0);
   void tick_wall();  // Call once per main loop iteration.
   const SimulationTime& now() const { return t_; }
 
