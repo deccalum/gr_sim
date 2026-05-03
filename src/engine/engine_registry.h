@@ -9,7 +9,7 @@
 
 #include "engine_interface.h"
 
-class SimulationState;
+struct SimulationState;
 
 /**
  * @brief Runtime registry for active secondary engines.
@@ -24,6 +24,6 @@ class EngineRegistry {
   bool is_loaded(const std::string& name) const;
 
  private:
-  std::vector<std::unique_ptr<EngineInterface> > engines_;
+  std::vector<std::unique_ptr<EngineInterface>> engines_;
   std::vector<std::string> names_;
 };

@@ -10,11 +10,9 @@
 #include <thread>
 #include <vector>
 
-class SimulationState;
+struct SimulationState;
 
-/**
- * @brief Minimal work packet used by the scheduler stub.
- */
+/** @brief Minimal work packet used by the scheduler stub. */
 struct WorkPacket {
   std::function<void()> execute;
   std::function<void()> on_complete;
@@ -22,9 +20,7 @@ struct WorkPacket {
   bool gpu_target = false;
 };
 
-/**
- * @brief Scheduler facade for future threaded CPU and GPU dispatch.
- */
+/** @brief Scheduler facade for future threaded CPU and GPU dispatch. */
 class Scheduler {
  public:
   explicit Scheduler(int cpu_threads = 0);  // 0 means use the hardware concurrency default.

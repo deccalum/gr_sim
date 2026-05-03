@@ -84,6 +84,17 @@ int main() {
   const AccuracyProfile acc = AccuracyProfile::Max();
   sim.set_default_accuracy(acc);
 
+  // Static observer at isotropic ρ = 20M.
+  // u^t = 1/A(ρ_obs) from the timelike normalization g_tt(u^t)² = -1.
+  {
+    const double rho_obs   = 20.0 * M;
+    const double alpha_obs = M / (2.0 * rho_obs);
+    const double A_obs     = (1.0 - alpha_obs) / (1.0 + alpha_obs);
+    const Vec4 obs_pos     = {0.0, rho_obs, 0.0, 0.0};
+    const Vec4 obs_vel     = {1.0 / A_obs, 0.0, 0.0, 0.0};
+    sim.add_observer(obs_pos, obs_vel, M);
+  }
+
   // Circular orbit at Schwarzschild r = 6M
   // Convert to isotropic ρ: r = ρ(1 + M/(2ρ))²
   // Inversion: ρ = (r - M + sqrt((r-M)² - M²)) / 2

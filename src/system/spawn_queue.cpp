@@ -10,6 +10,7 @@
 #include "spawn_queue.h"
 
 #include "engine/body.h"
+#include "safe_loader.h"
 #include "simulation.h"
 
 /**
@@ -32,7 +33,12 @@ void SpawnQueue::enqueue(SpawnRequest req) { queue_.push_back(std::move(req)); }
  * @param state Non-owning view into the live simulation containers (bodies, observers, id counter).
  */
 void SpawnQueue::process(SimulationState& state) {
+  SafeLoader loader;
+
   for (auto& req : queue_) {
+    // Gate every request through SafeLoader before constructing anything.
+    if (loader.check(req, state) == SpawnResult::Rejected) continue;
+
     switch (req.type) {
       case SpawnRequest::Type::Body: {
         auto& bp = std::get<BodyParams>(req.params);
@@ -45,7 +51,7 @@ void SpawnQueue::process(SimulationState& state) {
         auto& op = std::get<ObserverParams>(req.params);
         Vec4 pos{op.pos[0], op.pos[1], op.pos[2], op.pos[3]};
         Vec4 vel{op.vel[0], op.vel[1], op.vel[2], op.vel[3]};
-        state.observers.add(pos, vel);
+        state.observers.add(pos, vel, op.M);
         break;
       }
       case SpawnRequest::Type::Engine:

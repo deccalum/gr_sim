@@ -21,11 +21,11 @@ Body* Simulation::add_body(double mass, Vec4 pos, Vec4 vel, AccuracyProfile acc)
   return bodies_.back().get();
 }
 
-void Simulation::add_observer(Vec4 pos, Vec4 vel) { observers_.add(pos, vel); }
+void Simulation::add_observer(Vec4 pos, Vec4 vel, double M) { observers_.add(pos, vel, M); }
 void Simulation::load_engine(std::unique_ptr<EngineInterface> e) { engines_.load(std::move(e)); }
 
 void Simulation::step_once(double dl) {
-  SimulationState state{bodies_, observers_, next_id_};
+  SimulationState state{bodies_, observers_, next_id_, time_};
 
   // Flush deferred body/observer creation before any step logic reads the body list.
   spawn_queue_.process(state);
@@ -41,9 +41,13 @@ void Simulation::step_once(double dl) {
   for (auto& b : bodies_)
     time_.set_proper_time(static_cast<int>(b->id()), b->worldline().latest().tau);
 
+  // Update observer measurements after integration so the frame reflects current body positions.
+  observers_.update(state);
+
   engines_.post_step(state, dl);
   time_.advance(dl, u_t);
   time_.tick_wall();
+  ui_.render(state);
 }
 
 void Simulation::run(double total_lambda, double base_step) {

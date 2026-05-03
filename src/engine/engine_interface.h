@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-class SimulationState;
+struct SimulationState;
 
 /**
  * @brief Base interface implemented by every loadable physics engine.

@@ -18,8 +18,8 @@ core math types, logger, validator infrastructure.
 
 ### Phase 2 — Main Loop + Time System
 - [x] `TimeSystem` — wall / affine / coordinate / proper time channels
-- [ ] `ConsoleUI` — observer-driven frame render (time dilation visible per body)
-- [ ] `SafeLoader` — resource pre-flight before spawn (stub → real thresholds)
+- [x] `ConsoleUI` — observer-driven frame render (time dilation visible per body)
+- [x] `SafeLoader` — resource pre-flight before spawn (stub → real thresholds)
 
 ### Phase 3 — Observer / POV System
 - [ ] `Observer::measure()` — relativistic measurements (r, τ, dilation, visibility)
